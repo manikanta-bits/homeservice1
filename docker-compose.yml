@@ -1,0 +1,50 @@
+# Local development stack.
+#   docker compose up -d mysql redis mailpit     # infra only (run the API from your IDE with profile "local")
+#   docker compose --profile app up -d --build   # infra + API container
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: sahayak
+      MYSQL_USER: ${DB_USERNAME:-sahayak}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-sahayak_dev_pw}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_dev_pw}
+      TZ: UTC
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    ports: ["3306:3306"]
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_dev_pw}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine          # used from Milestone 3 (rate limits, live locations)
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest  # SMTP on 1025, web inbox on http://localhost:8025
+    ports: ["1025:1025", "8025:8025"]
+
+  api:
+    profiles: ["app"]
+    build: ./backend
+    depends_on:
+      mysql: { condition: service_healthy }
+      mailpit: { condition: service_started }
+    env_file: .env
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/sahayak?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_SMTP_AUTH: "false"
+      MAIL_STARTTLS: "false"
+    ports: ["8080:8080"]
+
+volumes:
+  mysql-data:

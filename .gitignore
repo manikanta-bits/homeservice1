@@ -1,0 +1,28 @@
+# secrets
+.env
+*.pem
+*.p8
+*.p12
+google-services.json
+GoogleService-Info.plist
+
+# backend
+backend/target/
+*.iml
+.idea/
+.vscode/
+
+# mobile
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/ios/
+mobile/android/
+mobile/coverage/
+mobile/.env
+
+# web
+web/node_modules/
+web/dist/
+
+.DS_Store
